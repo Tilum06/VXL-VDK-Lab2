@@ -1,0 +1,43 @@
+# =========================
+# STM32CubeIDE build output
+# =========================
+Debug/
+Release/
+
+# Object / dependency files
+*.o
+*.d
+*.su
+*.cyclo
+*.lst
+*.list
+
+# Compiled binaries
+*.elf
+*.bin
+*.hex
+*.map
+
+# =========================
+# STM32CubeIDE / Eclipse
+# =========================
+.metadata/
+*.launch
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE alternatives
+# =========================
+.vscode/
+.idea/
