@@ -357,13 +357,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
                 index_led = 0;
             }
 
-            //Blink DOT
-            if (dot_counter >= 100)
-			{
-				dot_counter = 0;
+        }
+        //Blink DOT
+        if (dot_counter >= 100)
+		{
+			dot_counter = 0;
 
-				HAL_GPIO_TogglePin(DOT_GPIO_Port, DOT_Pin);
-            }
+			HAL_GPIO_TogglePin(DOT_GPIO_Port, DOT_Pin);
         }
     }
 }
