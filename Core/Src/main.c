@@ -61,6 +61,7 @@ static void MX_GPIO_Init(void);
 
 int timer_counter = 0;
 int index_led = 0;
+int dot_counter = 0;
 
 static void set7SEG(GPIO_PinState a,
                     GPIO_PinState b,
@@ -279,14 +280,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, EN0_Pin|EN1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DOT_Pin|EN0_Pin|EN1_Pin|EN2_Pin
+                          |EN3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, SEG0_Pin|SEG1_Pin|SEG2_Pin|SEG3_Pin
                           |SEG4_Pin|SEG5_Pin|SEG6_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : EN0_Pin EN1_Pin */
-  GPIO_InitStruct.Pin = EN0_Pin|EN1_Pin;
+  /*Configure GPIO pins : DOT_Pin EN0_Pin EN1_Pin EN2_Pin
+                           EN3_Pin */
+  GPIO_InitStruct.Pin = DOT_Pin|EN0_Pin|EN1_Pin|EN2_Pin
+                          |EN3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -310,14 +314,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM2)
     {
         timer_counter++;
+        dot_counter++;
 
         if (timer_counter >= 50)
         {
             timer_counter = 0;
 
-            // Turn off 2 LED
+            // Turn off all LED
             HAL_GPIO_WritePin(EN0_GPIO_Port, EN0_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(EN1_GPIO_Port, EN1_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(EN2_GPIO_Port, EN2_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(EN3_GPIO_Port, EN3_Pin, GPIO_PIN_SET);
 
             if (index_led == 0) //LED1
             {
@@ -327,13 +334,35 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
                 index_led = 1;
             }
-            else //LED2
+            else if (index_led == 1)//LED2
             {
                 display7SEG(2);
 
                 HAL_GPIO_WritePin(EN1_GPIO_Port, EN1_Pin, GPIO_PIN_RESET);
 
+                index_led = 2;
+            }
+            else if (index_led == 2)//LED3
+            {
+                display7SEG(3);
+                HAL_GPIO_WritePin(EN2_GPIO_Port, EN2_Pin, GPIO_PIN_RESET);
+
+                index_led = 3;
+            }
+            else//LED4
+            {
+                display7SEG(0);
+                HAL_GPIO_WritePin(EN3_GPIO_Port, EN3_Pin, GPIO_PIN_RESET);
+
                 index_led = 0;
+            }
+
+            //Blink DOT
+            if (dot_counter >= 100)
+			{
+				dot_counter = 0;
+
+				HAL_GPIO_TogglePin(DOT_GPIO_Port, DOT_Pin);
             }
         }
     }
