@@ -65,8 +65,8 @@ int dot_counter = 0;
 const int MAX_LED = 4;
 int index_led = 0;
 
-int led_buffer[4] = {1, 2, 3, 4};
-
+int led_buffer[4] = {0, 0, 0, 0};
+int hour = 15, minute = 8, second = 50;
 
 
 static void set7SEG(GPIO_PinState a,
@@ -181,6 +181,15 @@ void update7SEG(int index)
     }
 }
 
+void updateClockBuffer(void)
+{
+    led_buffer[0] = hour / 10;
+    led_buffer[1] = hour % 10;
+
+    led_buffer[2] = minute / 10;
+    led_buffer[3] = minute % 10;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -214,12 +223,31 @@ int main(void)
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	second++;
+
+	if (second >= 60) {
+		second = 0;
+		minute++;
+	}
+
+	if (minute >= 60) {
+		minute = 0;
+		hour++;
+	}
+
+	if (hour >= 24) {
+		hour = 0;
+	}
+
+	updateClockBuffer();
+	HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
