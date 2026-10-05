@@ -358,7 +358,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         dot_counter++;
 
         // Change degit
-        if (timer_counter >= 50)
+        if (timer_counter >= 25)
         {
             timer_counter = 0;
 
