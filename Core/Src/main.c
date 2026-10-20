@@ -34,6 +34,7 @@
 /* USER CODE BEGIN PD */
 #define SEG_ON  GPIO_PIN_RESET
 #define SEG_OFF GPIO_PIN_SET
+#define MATRIX_SCROLL_WIDTH 16
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -67,6 +68,8 @@ volatile int timer2_counter = 0;
 volatile int timer2_flag = 0;
 volatile int timer3_counter = 0;
 volatile int timer3_flag = 0;
+volatile int timer4_counter = 0;
+volatile int timer4_flag = 0;
 const int TIMER_CYCLE = 10;
 
 const int MAX_LED = 4;
@@ -80,6 +83,13 @@ uint8_t matrix_buffer[8] = {
     0x00, 0x7C, 0x0A, 0x09,
     0x09, 0x0A, 0x7C, 0x00
 };
+
+// Du lieu chu A theo cot + 8 cot trong de chu A di het man hinh.
+static const uint8_t matrix_scroll_data[MATRIX_SCROLL_WIDTH] = {
+    0x00, 0x7C, 0x0A, 0x09, 0x09, 0x0A, 0x7C, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+int matrix_scroll_position = 0;
 
 static uint16_t matrix_enable_pin(int index)
 {
@@ -189,30 +199,65 @@ void timer3_run(void)
     }
 }
 
+void setTimer4(int duration)
+{
+    timer4_counter = duration / TIMER_CYCLE;
+    timer4_flag = 0;
+}
+
+void timer4_run(void)
+{
+    if (timer4_counter > 0)
+    {
+        timer4_counter--;
+        if (timer4_counter == 0)
+        {
+            timer4_flag = 1;
+        }
+    }
+}
+
+// Ex10: dich chu A sang trai mot cot, sau do xuat hien lai tu phai.
+// Chi thay matrix_buffer; updateLEDMatrix() van quet cot nhu Ex9.
+void scrollMatrixLeft(void)
+{
+    matrix_scroll_position++;
+    if (matrix_scroll_position >= MATRIX_SCROLL_WIDTH)
+    {
+        matrix_scroll_position = 0;
+    }
+
+    for (int col = 0; col < MAX_LED_MATRIX; col++)
+    {
+        int data_index = (col + matrix_scroll_position) % MATRIX_SCROLL_WIDTH;
+        matrix_buffer[col] = matrix_scroll_data[data_index];
+    }
+}
+
 void updateLEDMatrix(int index)
 {
     if (index < 0 || index >= MAX_LED_MATRIX)
+    {
         return;
+    }
 
-    // Tat tat ca cot
+    // Tat 8 cot: ENM = RESET -> ULN2803 khong keo COL xuong GND
     for (int col = 0; col < MAX_LED_MATRIX; col++)
     {
-        HAL_GPIO_WritePin(GPIOA,
-            matrix_enable_pin(col), GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, matrix_enable_pin(col), GPIO_PIN_RESET);
     }
 
-    // Dua du lieu ra 8 hang
+    // Xuat mau cho 8 hang (bit = 1 -> ROW HIGH -> LED sang)
     uint8_t row_data = matrix_buffer[index];
-
     for (int row = 0; row < MAX_LED_MATRIX; row++)
     {
-        HAL_GPIO_WritePin(GPIOB,
-            matrix_row_pin(row),
-            (row_data & (1U << row))
-                ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOB, matrix_row_pin(row),
+                          (row_data & (1U << row)) ? GPIO_PIN_SET
+                                                  : GPIO_PIN_RESET);
     }
 
-    // Chon cot dang quet
+    // Chon 1 cot bang switch-case nhu Program 1.9 - Exercise 9
+    // ENM = SET -> ULN2803 keo COL xuong GND
     switch (index)
     {
         case 0:
@@ -397,24 +442,31 @@ int main(void)
   MX_TIM2_Init();
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-HAL_GPIO_WritePin(GPIOA,
-    ENM0_Pin | ENM1_Pin | ENM2_Pin | ENM3_Pin |
-    ENM4_Pin | ENM5_Pin | ENM6_Pin | ENM7_Pin,
-    GPIO_PIN_SET);
 
-HAL_GPIO_WritePin(GPIOB,
-    ROW0_Pin | ROW1_Pin | ROW2_Pin | ROW3_Pin |
-    ROW4_Pin | ROW5_Pin | ROW6_Pin | ROW7_Pin,
-    GPIO_PIN_SET);
+  // Proteus: cho phep PA13, PA14, PA15 lam GPIO (tat SWD/JTAG).
+  // Neu dung board that va can debug qua SWD, hay doi ENM5/ENM6 sang chan khac.
+  __HAL_RCC_AFIO_CLK_ENABLE();
+  __HAL_AFIO_REMAP_SWJ_DISABLE();
 
-updateClockBuffer();
+  // Ban dau tat ca cac cot va hang cua Matrix deu tat
+  HAL_GPIO_WritePin(GPIOA,
+      ENM0_Pin | ENM1_Pin | ENM2_Pin | ENM3_Pin |
+      ENM4_Pin | ENM5_Pin | ENM6_Pin | ENM7_Pin,
+      GPIO_PIN_RESET);
 
-setTimer0(1000);
-setTimer1(1000);
-setTimer2(250);
-setTimer3(10);
+  HAL_GPIO_WritePin(GPIOB,
+      ROW0_Pin | ROW1_Pin | ROW2_Pin | ROW3_Pin |
+      ROW4_Pin | ROW5_Pin | ROW6_Pin | ROW7_Pin,
+      GPIO_PIN_RESET);
 
-HAL_TIM_Base_Start_IT(&htim2);
+  updateClockBuffer();
+  setTimer0(1000);   // clock
+  setTimer1(1000);   // DOT
+  setTimer2(250);    // 7-segment scanning
+  setTimer3(10);     // LED Matrix: 10ms per column
+  setTimer4(300);    // Ex10: dich chu A moi 300ms
+
+  HAL_TIM_Base_Start_IT(&htim2);
 
   /* USER CODE END 2 */
 
@@ -477,6 +529,12 @@ HAL_TIM_Base_Start_IT(&htim2);
         }
 
         setTimer3(10);
+    }
+
+    if (timer4_flag == 1)
+    {
+        scrollMatrixLeft();
+        setTimer4(300);
     }
     /* USER CODE END WHILE */
 
@@ -628,6 +686,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         timer1_run();
         timer2_run();
         timer3_run();
+        timer4_run();
     }
 }
 
