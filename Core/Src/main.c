@@ -84,7 +84,6 @@ uint8_t matrix_buffer[8] = {
     0x09, 0x0A, 0x7C, 0x00
 };
 
-// Du lieu chu A theo cot + 8 cot trong de chu A di het man hinh.
 static const uint8_t matrix_scroll_data[MATRIX_SCROLL_WIDTH] = {
     0x00, 0x7C, 0x0A, 0x09, 0x09, 0x0A, 0x7C, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -217,8 +216,7 @@ void timer4_run(void)
     }
 }
 
-// Ex10: dich chu A sang trai mot cot, sau do xuat hien lai tu phai.
-// Chi thay matrix_buffer; updateLEDMatrix() van quet cot nhu Ex9.
+
 void scrollMatrixLeft(void)
 {
     matrix_scroll_position++;
@@ -241,13 +239,11 @@ void updateLEDMatrix(int index)
         return;
     }
 
-    // Tat 8 cot: ENM = RESET -> ULN2803 khong keo COL xuong GND
     for (int col = 0; col < MAX_LED_MATRIX; col++)
     {
         HAL_GPIO_WritePin(GPIOA, matrix_enable_pin(col), GPIO_PIN_RESET);
     }
 
-    // Xuat mau cho 8 hang (bit = 1 -> ROW HIGH -> LED sang)
     uint8_t row_data = matrix_buffer[index];
     for (int row = 0; row < MAX_LED_MATRIX; row++)
     {
@@ -256,8 +252,6 @@ void updateLEDMatrix(int index)
                                                   : GPIO_PIN_RESET);
     }
 
-    // Chon 1 cot bang switch-case nhu Program 1.9 - Exercise 9
-    // ENM = SET -> ULN2803 keo COL xuong GND
     switch (index)
     {
         case 0:
@@ -443,8 +437,7 @@ int main(void)
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
 
-  // Proteus: cho phep PA13, PA14, PA15 lam GPIO (tat SWD/JTAG).
-  // Neu dung board that va can debug qua SWD, hay doi ENM5/ENM6 sang chan khac.
+
   __HAL_RCC_AFIO_CLK_ENABLE();
   __HAL_AFIO_REMAP_SWJ_DISABLE();
 
