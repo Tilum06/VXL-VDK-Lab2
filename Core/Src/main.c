@@ -59,11 +59,12 @@ static void MX_GPIO_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-int timer_counter = 0;
 volatile int timer0_counter = 0;
 volatile int timer0_flag = 0;
 volatile int timer1_counter = 0;
 volatile int timer1_flag = 0;
+volatile int timer2_counter = 0;
+volatile int timer2_flag = 0;
 const int TIMER_CYCLE = 10;
 
 const int MAX_LED = 4;
@@ -106,6 +107,25 @@ void timer1_run(void)
         if (timer1_counter == 0)
         {
             timer1_flag = 1;
+        }
+    }
+}
+
+void setTimer2(int duration)
+{
+    timer2_counter = duration / TIMER_CYCLE;
+    timer2_flag = 0;
+}
+
+void timer2_run(void)
+{
+    if (timer2_counter > 0)
+    {
+        timer2_counter--;
+
+        if (timer2_counter == 0)
+        {
+            timer2_flag = 1;
         }
     }
 }
@@ -267,6 +287,7 @@ int main(void)
   updateClockBuffer();
   setTimer0(1000);
   setTimer1(1000);
+  setTimer2(250);
 
   /* USER CODE END 2 */
 
@@ -303,6 +324,19 @@ int main(void)
     {
         HAL_GPIO_TogglePin(DOT_GPIO_Port, DOT_Pin);
         setTimer1(1000);
+    }
+
+    if (timer2_flag == 1)
+    {
+        update7SEG(index_led);
+
+        index_led++;
+        if (index_led >= MAX_LED)
+        {
+            index_led = 0;
+        }
+
+        setTimer2(250);
     }
     /* USER CODE END WHILE */
 
@@ -440,22 +474,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     {
         timer_run();
         timer1_run();
-
-        // Change degit
-        timer_counter++;
-        if (timer_counter >= 25)
-        {
-            timer_counter = 0;
-
-            update7SEG(index_led);
-
-            index_led++;
-
-            if (index_led >= MAX_LED)
-            {
-                index_led = 0;
-            }
-        }
+        timer2_run();
     }
 }
 
