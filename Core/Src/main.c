@@ -77,23 +77,41 @@ int hour = 15, minute = 8, second = 50;
 const int MAX_LED_MATRIX = 8;
 int index_led_matrix = 0;
 uint8_t matrix_buffer[8] = {
-    0x18, 0x24, 0x42, 0x7E, 0x42, 0x42, 0x42, 0x00
+    0x00, 0x7C, 0x0A, 0x09,
+    0x09, 0x0A, 0x7C, 0x00
 };
 
-static GPIO_TypeDef *const matrix_enable_ports[MAX_LED_MATRIX] = {
-    ENM0_GPIO_Port, ENM1_GPIO_Port, ENM2_GPIO_Port, ENM3_GPIO_Port,
-    ENM4_GPIO_Port, ENM5_GPIO_Port, ENM6_GPIO_Port, ENM7_GPIO_Port
-};
+static uint16_t matrix_enable_pin(int index)
+{
+    switch (index)
+    {
+        case 0: return ENM0_Pin;
+        case 1: return ENM1_Pin;
+        case 2: return ENM2_Pin;
+        case 3: return ENM3_Pin;
+        case 4: return ENM4_Pin;
+        case 5: return ENM5_Pin;
+        case 6: return ENM6_Pin;
+        case 7: return ENM7_Pin;
+        default: return GPIO_PIN_RESET;
+    }
+}
 
-static const uint16_t matrix_enable_pins[MAX_LED_MATRIX] = {
-    ENM0_Pin, ENM1_Pin, ENM2_Pin, ENM3_Pin,
-    ENM4_Pin, ENM5_Pin, ENM6_Pin, ENM7_Pin
-};
-
-static const uint16_t matrix_row_pins[MAX_LED_MATRIX] = {
-    ROW0_Pin, ROW1_Pin, ROW2_Pin, ROW3_Pin,
-    ROW4_Pin, ROW5_Pin, ROW6_Pin, ROW7_Pin
-};
+static uint16_t matrix_row_pin(int index)
+{
+    switch (index)
+    {
+        case 0: return ROW0_Pin;
+        case 1: return ROW1_Pin;
+        case 2: return ROW2_Pin;
+        case 3: return ROW3_Pin;
+        case 4: return ROW4_Pin;
+        case 5: return ROW5_Pin;
+        case 6: return ROW6_Pin;
+        case 7: return ROW7_Pin;
+        default: return GPIO_PIN_RESET;
+    }
+}
 
 void setTimer0(int duration)
 {
@@ -173,28 +191,57 @@ void timer3_run(void)
 
 void updateLEDMatrix(int index)
 {
-    uint8_t row_data;
-
     if (index < 0 || index >= MAX_LED_MATRIX)
-    {
         return;
-    }
 
-    for (int column = 0; column < MAX_LED_MATRIX; column++)
+    // Tat tat ca cot
+    for (int col = 0; col < MAX_LED_MATRIX; col++)
     {
-        HAL_GPIO_WritePin(matrix_enable_ports[column],
-                          matrix_enable_pins[column], GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA,
+            matrix_enable_pin(col), GPIO_PIN_RESET);
     }
 
-    row_data = matrix_buffer[index];
+    // Dua du lieu ra 8 hang
+    uint8_t row_data = matrix_buffer[index];
+
     for (int row = 0; row < MAX_LED_MATRIX; row++)
     {
-        HAL_GPIO_WritePin(GPIOB, matrix_row_pins[row],
-                          (row_data & (1U << row)) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOB,
+            matrix_row_pin(row),
+            (row_data & (1U << row))
+                ? GPIO_PIN_SET : GPIO_PIN_RESET);
     }
 
-    HAL_GPIO_WritePin(matrix_enable_ports[index],
-                      matrix_enable_pins[index], GPIO_PIN_SET);
+    // Chon cot dang quet
+    switch (index)
+    {
+        case 0:
+            HAL_GPIO_WritePin(ENM0_GPIO_Port, ENM0_Pin, GPIO_PIN_SET);
+            break;
+        case 1:
+            HAL_GPIO_WritePin(ENM1_GPIO_Port, ENM1_Pin, GPIO_PIN_SET);
+            break;
+        case 2:
+            HAL_GPIO_WritePin(ENM2_GPIO_Port, ENM2_Pin, GPIO_PIN_SET);
+            break;
+        case 3:
+            HAL_GPIO_WritePin(ENM3_GPIO_Port, ENM3_Pin, GPIO_PIN_SET);
+            break;
+        case 4:
+            HAL_GPIO_WritePin(ENM4_GPIO_Port, ENM4_Pin, GPIO_PIN_SET);
+            break;
+        case 5:
+            HAL_GPIO_WritePin(ENM5_GPIO_Port, ENM5_Pin, GPIO_PIN_SET);
+            break;
+        case 6:
+            HAL_GPIO_WritePin(ENM6_GPIO_Port, ENM6_Pin, GPIO_PIN_SET);
+            break;
+        case 7:
+            HAL_GPIO_WritePin(ENM7_GPIO_Port, ENM7_Pin, GPIO_PIN_SET);
+            break;
+        default:
+            break;
+    }
 }
 
 static void set7SEG(GPIO_PinState a,
@@ -350,12 +397,24 @@ int main(void)
   MX_TIM2_Init();
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim2);
-  updateClockBuffer();
-  setTimer0(1000);
-  setTimer1(1000);
-  setTimer2(250);
-  setTimer3(10);
+HAL_GPIO_WritePin(GPIOA,
+    ENM0_Pin | ENM1_Pin | ENM2_Pin | ENM3_Pin |
+    ENM4_Pin | ENM5_Pin | ENM6_Pin | ENM7_Pin,
+    GPIO_PIN_SET);
+
+HAL_GPIO_WritePin(GPIOB,
+    ROW0_Pin | ROW1_Pin | ROW2_Pin | ROW3_Pin |
+    ROW4_Pin | ROW5_Pin | ROW6_Pin | ROW7_Pin,
+    GPIO_PIN_SET);
+
+updateClockBuffer();
+
+setTimer0(1000);
+setTimer1(1000);
+setTimer2(250);
+setTimer3(10);
+
+HAL_TIM_Base_Start_IT(&htim2);
 
   /* USER CODE END 2 */
 
